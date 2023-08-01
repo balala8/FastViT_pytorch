@@ -233,12 +233,12 @@ class RepBlock(nn.Module):
         eps = branch.bn.eps
         std = (running_var + eps).sqrt()
         return kernel * (gamma / std).reshape(
-            self.out_channels, self.in_channels // self.groups, 1, 1
+            -1, self.in_channels // self.groups, 1, 1
         ), torch.sum(
             kernel
             * (
                 (beta - running_mean * (gamma / std)).view(
-                    self.out_channels, self.in_channels // self.groups, 1, 1
+                    -1, self.in_channels // self.groups, 1, 1
                 )
             ),
             dim=(1, 2, 3),

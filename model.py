@@ -220,7 +220,7 @@ class RepBlock(nn.Module):
             return kernel * t, beta - running_mean * gamma / std
 
     def _fuse_bn_conv_tensor(self, branch) -> Tuple[torch.Tensor, torch.Tensor]:
-        """First bn, then conv
+        """先bn,后conv
 
         :param branch:
         :return: Tuple of (kernel, bias) after fusing batchnorm.
@@ -232,14 +232,14 @@ class RepBlock(nn.Module):
         beta = branch.bn.bias
         eps = branch.bn.eps
         std = (running_var + eps).sqrt()
-        return kernel * (gamma / std).reshape(
-            -1, self.in_channels // self.groups, 1, 1
-        ), torch.sum(
+        t = gamma / std
+        t = torch.stack([t] * (kernel.shape[0] * kernel.shape[1]//t.shape[0]),dim=0).reshape(-1, self.in_channels // self.groups, 1, 1)
+        t_beta = torch.stack([beta] * (kernel.shape[0] * kernel.shape[1]//beta.shape[0]),dim=0).reshape(-1, self.in_channels // self.groups, 1, 1)
+        t_running_mean = torch.stack([running_mean] * (kernel.shape[0] * kernel.shape[1]//running_mean.shape[0]),dim=0).reshape(-1, self.in_channels // self.groups, 1, 1)
+        return kernel * t, torch.sum(
             kernel
             * (
-                (beta - running_mean * (gamma / std)).view(
-                    -1, self.in_channels // self.groups, 1, 1
-                )
+                t_beta - t_running_mean * t
             ),
             dim=(1, 2, 3),
         )
